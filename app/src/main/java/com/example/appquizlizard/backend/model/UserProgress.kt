@@ -3,6 +3,7 @@ package com.example.appquizlizard.backend.model
 import kotlinx.serialization.Serializable
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 
@@ -10,15 +11,17 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "progress",
     foreignKeys = [ForeignKey(
         entity = User::class,
-        parentColumns = ["progressId"],
+        parentColumns = ["userId"],
         childColumns = ["userId"],
         onDelete = ForeignKey.CASCADE
     ), ForeignKey(
         entity = Question::class,
-        parentColumns = ["progressId"],
+        parentColumns = ["questionId"],
         childColumns = ["questionId"],
         onDelete = ForeignKey.CASCADE
-    )]
+    )],
+    indices = [Index(value = ["userId"]),Index(value = ["questionId"])],
+
 )
 
 data class UserProgress(

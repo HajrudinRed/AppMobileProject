@@ -3,8 +3,9 @@ package com.example.appquizlizard.backend.di
 
 import android.content.Context
 import androidx.room.Room
+import com.example.appquizlizard.backend.dao.AnswerDao
 import com.example.appquizlizard.backend.database.AppDatabase
-import com.google.android.datatransport.runtime.dagger.Module
+import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -12,6 +13,8 @@ import com.example.appquizlizard.backend.dao.CategoryDao
 import com.example.appquizlizard.backend.dao.QuestionDao
 import com.example.appquizlizard.backend.dao.UserDao
 import com.example.appquizlizard.backend.dao.UserProgressDao
+import com.example.appquizlizard.backend.repositories.AnswerRepository
+import com.example.appquizlizard.backend.repositories.AnswerRepositoryImpl
 import com.example.appquizlizard.backend.repositories.CategoryRepository
 import com.example.appquizlizard.backend.repositories.CategoryRepositoryImpl
 import com.example.appquizlizard.backend.repositories.QuestionRepository
@@ -43,6 +46,8 @@ object DatabaseModule {
     fun provideQuestionDao(appDatabase: AppDatabase): QuestionDao = appDatabase.questionDao()
     @Provides
     fun provideUserProgressDao(appDatabase: AppDatabase): UserProgressDao = appDatabase.userProgressDao()
+    @Provides
+    fun provideAnswerDao(appDatabase: AppDatabase): AnswerDao = appDatabase.answerDao()
 
     @Provides
     @Singleton
@@ -56,5 +61,8 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideUserProgressRepository(userProgressDao: UserProgressDao): UserProgressRepository = UserProgressRepositoryImpl(userProgressDao)
+    @Provides
+    @Singleton
+    fun provideAnswerRepository(answerDao: AnswerDao): AnswerRepository = AnswerRepositoryImpl(answerDao)
 }
 
