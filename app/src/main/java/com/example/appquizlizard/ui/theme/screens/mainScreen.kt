@@ -64,7 +64,7 @@ fun MainScreen(navigateToCategory: (String) -> Unit) {
             Text("Gategories", fontSize = 20.sp, fontWeight = FontWeight.Bold)
 
             // Category buttons
-            val categories = listOf("Countries", "Math", "Random", "History")
+            val categories = listOf("Countries","Random", "History")
             categories.forEach { category ->
                 Button(
                     onClick = { navigateToCategory(category) },

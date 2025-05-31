@@ -24,7 +24,7 @@ import com.example.appquizlizard.backend.repositories.UserProgressRepositoryImpl
 import com.example.appquizlizard.backend.repositories.UserRepository
 import com.example.appquizlizard.backend.repositories.UserRepositoryImpl
 import dagger.hilt.components.SingletonComponent
-import jakarta.inject.Singleton
+import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
