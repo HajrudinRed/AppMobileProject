@@ -13,7 +13,7 @@ interface QuestionDao: BaseDao<Question> {
     fun getAllQuestions(): Flow<List<Question>>
 
     @Query("SELECT * FROM questions WHERE categoryId = :categoryId")
-    fun getQuestionByCategory(categoryId: Int): Flow<Question>
+    fun getQuestionByCategory(categoryId: Int): Flow<Question?>
 
     @Query("SELECT * FROM questions WHERE questionId = :questionId")
     suspend fun getQuestionById(questionId: Int): Question?

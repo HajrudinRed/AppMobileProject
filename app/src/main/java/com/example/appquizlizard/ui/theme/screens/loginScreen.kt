@@ -1,4 +1,5 @@
 package com.example.appquizlizard.ui.theme.screens
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -7,11 +8,7 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.appquizlizard.R
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
@@ -27,26 +24,23 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-
-
+import com.example.appquizlizard.backend.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(
-
-    navigateToMainScreen: (userId: Int) -> Unit // Add userId parameter
+    authViewModel: AuthViewModel = viewModel()
 ) {
-    // Rest of the function remains the same
-
     val backgroundColor = Color(android.graphics.Color.parseColor("#FFFFFFFF"))
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisibility by remember { mutableStateOf(false) }
+
+    val loginState by authViewModel.loginState.collectAsState()
 
     val shape = RoundedCornerShape(
         topStart = CornerSize(0.dp),
@@ -66,7 +60,7 @@ fun LoginScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(shape) // Apply the shape here
+                .clip(shape)
                 .background(Color(0xFF800020))
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
@@ -82,7 +76,7 @@ fun LoginScreen(
             )
         }
 
-        Spacer(modifier = Modifier.size(width = 0.dp, height = 100.dp))
+        Spacer(modifier = Modifier.height(100.dp))
 
         Image(
             painter = painterResource(id = R.drawable.quizlizardlogo),
@@ -90,9 +84,8 @@ fun LoginScreen(
             modifier = Modifier.size(225.dp)
         )
 
-        Spacer(modifier = Modifier.size(width = 0.dp, height = 20.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Email TextField
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
@@ -105,7 +98,6 @@ fun LoginScreen(
                 .padding(vertical = 8.dp)
         )
 
-        // Password TextField
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
@@ -127,26 +119,43 @@ fun LoginScreen(
                 .fillMaxWidth(0.8f)
                 .padding(vertical = 8.dp)
         )
-        //Register if no account
-        TextButton(
-            onClick = { /* Navigate to Sign Up Screen */ },
-            modifier = Modifier.padding(vertical = 16.dp)
-        ) {
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (loginState.isLoading) {
+            CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+        }
+
+        loginState.errorMessage?.let { error ->
             Text(
-                text = "Don't have an account?",
-                fontSize = 16.sp,
-                color = Color.DarkGray,
+                text = error,
+                color = Color.Red,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(8.dp)
             )
         }
-        Spacer(modifier = Modifier.size(width = 0.dp, height = 1.dp))
+
+        if (loginState.isSuccess) {
+            Text(
+                text = "Login successful! User ID: ${loginState.userId}",
+                color = Color.Green,
+                fontSize = 16.sp,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         Button(
             modifier = Modifier
                 .height(50.dp)
                 .width(150.dp),
             shape = RoundedCornerShape(50.dp),
-            onClick = { navigateToMainScreen(0) },
+            onClick = {
+                authViewModel.login(email.trim(), password.trim())
+            },
             colors = ButtonDefaults.buttonColors(Color(0xFF800020)),
+            enabled = !loginState.isLoading
         ) {
             Text(
                 text = "Login",
@@ -154,12 +163,5 @@ fun LoginScreen(
                 fontSize = 18.sp
             )
         }
-
     }
-}
-
-@Preview(showSystemUi = true)
-@Composable
-fun LoginScreenPreview() {
-    LoginScreen(navigateToMainScreen = {})
 }
