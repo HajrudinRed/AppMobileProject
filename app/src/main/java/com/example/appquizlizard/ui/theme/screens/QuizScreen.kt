@@ -119,7 +119,7 @@ fun QuizScreenContent(
     navigateToFinish: (Int, Int) -> Unit
 ) {
     val backgroundColor = Color(android.graphics.Color.parseColor("#FFFFFF"))
-    val headerColor = Color(0xFFB22222) // Using direct color value instead of R.color.Red2
+    val headerColor = Color(0xFF800020) // Using direct color value instead of R.color.Red2
     val buttonColor = Color(0xFF800020) // Using direct color value instead of R.color.Green2
 
     // Track if we've already navigated to avoid duplicate navigations
