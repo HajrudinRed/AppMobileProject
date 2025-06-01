@@ -1,12 +1,15 @@
-package com.example.appquizlizard.viewmodel
+package com.example.appquizlizard.backend.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.appquizlizard.backend.model.Answer
 import com.example.appquizlizard.backend.model.Question
+import com.example.appquizlizard.backend.model.UserProgress
 import com.example.appquizlizard.backend.repositories.AnswerRepository
 import com.example.appquizlizard.backend.repositories.QuestionRepository
 import com.example.appquizlizard.backend.repositories.UserProgressRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -22,14 +25,23 @@ class QuizViewModel @Inject constructor(
     // Current category id (you can set this from UI)
     private val _categoryId = MutableStateFlow<Int?>(null)
 
-    // Expose current question as a Flow, emits new question when category or question changes
+    private val _answers = MutableStateFlow<List<Answer>>(emptyList())
+    val answers: StateFlow<List<Answer>> = _answers
+
+    // Expose current question as a Flow, emits new question when category changes
     val currentQuestion: StateFlow<Question?> = _categoryId
         .filterNotNull()
         .flatMapLatest { categoryId ->
             questionRepository.getQuestionByCategory(categoryId)
-                .catch { emit(null) }
+                .catch { e ->
+                    _error.value = e.message
+                    emit(null)
+                }
         }
         .stateIn(viewModelScope, SharingStarted.Lazily, null)
+
+    private val _correctAnswer = MutableStateFlow<Answer?>(null)
+    val correctAnswer: StateFlow<Answer?> = _correctAnswer
 
     // Expose answers for the current question as a Flow
     val currentAnswers: StateFlow<List<Answer>> = currentQuestion
@@ -42,15 +54,21 @@ class QuizViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    private val _userProgress = MutableStateFlow<List<UserProgress>>(emptyList())
+    val userProgress: StateFlow<List<UserProgress>> = _userProgress
+
     // Track user's selected answer ID for current question
     private val _selectedAnswerId = MutableStateFlow<Int?>(null)
     val selectedAnswerId: StateFlow<Int?> = _selectedAnswerId.asStateFlow()
+
+    private val _correctAnswersCount = MutableStateFlow(0)
+    val correctAnswersCount: StateFlow<Int> = _correctAnswersCount
 
     // StateFlow to show if selected answer is correct or not (null if unanswered)
     private val _isAnswerCorrect = MutableStateFlow<Boolean?>(null)
     val isAnswerCorrect: StateFlow<Boolean?> = _isAnswerCorrect.asStateFlow()
 
-    // Loading and error state (optional)
+    // Loading and error state
     private val _loading = MutableStateFlow(false)
     val loading = _loading.asStateFlow()
 
@@ -61,6 +79,13 @@ class QuizViewModel @Inject constructor(
     fun setCategory(categoryId: Int) {
         _categoryId.value = categoryId
         resetAnswerState()
+    }
+
+    fun loadUserProgress(userId: Int) {
+        viewModelScope.launch {
+            _userProgress.value = userProgressRepository.getUserProgress(userId)
+            _correctAnswersCount.value = userProgressRepository.getCorrectAnswersCount(userId)
+        }
     }
 
     // User selects an answer by answerId
@@ -82,12 +107,12 @@ class QuizViewModel @Inject constructor(
 
                 // Save user progress with correct parameters and timestamp
                 userProgressRepository.insert(
-                    com.example.appquizlizard.backend.model.UserProgress(
+                    UserProgress(
                         userId = 1,  // Replace with actual logged-in userId
                         questionId = question.questionId,
-                        selectedAnswerId = answerId,           // <-- Pass selectedAnswerId here!
+                        answerId = answerId,
                         isCorrect = _isAnswerCorrect.value == true,
-                        timestamp = System.currentTimeMillis() // You forgot timestamp as well!
+                        timestamp = System.currentTimeMillis()
                     )
                 )
             } catch (e: Exception) {
@@ -98,7 +123,21 @@ class QuizViewModel @Inject constructor(
         }
     }
 
-    private fun resetAnswerState() {
+    fun saveUserProgress(userId: Int, questionId: Int, isCorrect: Boolean) {
+        viewModelScope.launch {
+            val progress = UserProgress(
+                userId = userId,
+                questionId = questionId,
+                answerId = _selectedAnswerId.value ?: 0,
+                isCorrect = isCorrect,
+                timestamp = System.currentTimeMillis()
+            )
+            userProgressRepository.insert(progress)
+            loadUserProgress(userId)
+        }
+    }
+
+    fun resetAnswerState() {
         _selectedAnswerId.value = null
         _isAnswerCorrect.value = null
         _error.value = null
