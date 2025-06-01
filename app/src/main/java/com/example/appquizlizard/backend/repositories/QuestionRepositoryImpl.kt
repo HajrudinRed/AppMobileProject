@@ -19,7 +19,7 @@ class QuestionRepositoryImpl @Inject constructor(private val questionDao: Questi
     override suspend fun getAllQuestions(): Flow<List<Question>> {
         return questionDao.getAllQuestions()
     }
-    override suspend fun getQuestionByCategory(id: Int): Flow<Question> {
+    override suspend fun getQuestionByCategory(id: Int): Flow<Question?> {
         return questionDao.getQuestionByCategory(categoryId = id)
     }
     override suspend fun getQuestionById(id: Int): Question? {

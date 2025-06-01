@@ -29,6 +29,7 @@ data class UserProgress(
     val progressId: Int = 0,
     val userId: Int,
     val questionId: Int,
+    val answerId: Int,
     val isCorrect: Boolean,
     val timestamp: Long
 )
