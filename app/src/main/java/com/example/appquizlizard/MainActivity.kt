@@ -6,13 +6,6 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import com.example.appquizlizard.backend.dao.AnswerDao
 import com.example.appquizlizard.backend.dao.CategoryDao
 import com.example.appquizlizard.backend.dao.QuestionDao
@@ -21,25 +14,43 @@ import com.example.appquizlizard.backend.model.Answer
 import com.example.appquizlizard.backend.model.Category
 import com.example.appquizlizard.backend.model.Question
 import com.example.appquizlizard.backend.model.User
+import com.example.appquizlizard.backend.repositories.CategoryRepository
+import com.example.appquizlizard.backend.repositories.QuestionRepository
+import com.example.appquizlizard.backend.repositories.UserRepository
+import com.example.appquizlizard.ui.theme.navigation.AppNavHost
 import com.example.appquizlizard.ui.theme.theme.AppQuizLizardTheme
+import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject
+    lateinit var categoryRepository: CategoryRepository
+
+    @Inject
+    lateinit var questionRepository: QuestionRepository
+
+    @Inject
+    lateinit var userRepository: UserRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             AppQuizLizardTheme {
-
-
-                }
+                AppNavHost(
+                    categoryRepository = categoryRepository,
+                    questionRepository = questionRepository,
+                    userRepository = userRepository
+                )
             }
         }
     }
+}
 @HiltAndroidApp
 class DatabaseSeed: Application() {
     @Inject
@@ -49,27 +60,33 @@ class DatabaseSeed: Application() {
         super.onCreate()
 
         CoroutineScope(Dispatchers.IO).launch {
-            /*try {
+            try {
                 val db = database
-                Log.d("DatabaseSeeding", "Starting database seeding")
-                val testUser = User(userId = 0, username = "testuser", email = "test@example.com", password = "password123")
-                val userId = db.userDao().insert(testUser) // userId is Long
-                val user1 = db.userDao().getUserById(userId.toInt())
-                // Seed categories and get their IDs
-                val countriesCategoryId = db.categoryDao().insert(Category(name = "Countries")).toInt()
-                val randomCategoryId = db.categoryDao().insert(Category(name = "Random")).toInt()
-                val historyCategoryId = db.categoryDao().insert(Category(name = "History")).toInt()
+                if (isDatabaseEmpty(db)) {
+                    Log.d("DatabaseSeeding", "Starting database seeding")
+                    val testUser = User(userId = 0, username = "testuser", email = "test@example.com", password = "password123")
+                    val userId = db.userDao().insert(testUser) // userId is Long
+                    val user1 = db.userDao().getUserById(userId.toInt())
+                    // Seed categories and get their IDs
+                    val countriesCategoryId = db.categoryDao().insert(Category(name = "Countries")).toInt()
+                    val randomCategoryId = db.categoryDao().insert(Category(name = "Random")).toInt()
+                    val historyCategoryId = db.categoryDao().insert(Category(name = "History")).toInt()
 
-                seedHistoryQuestions(db.questionDao(), db.answerDao(), historyCategoryId)
-                seedFlagQuestions(db.questionDao(), db.answerDao(), countriesCategoryId)
-                seedGeneralQuestions(db.questionDao(), db.answerDao(), randomCategoryId)
-                Log.d("DatabaseSeeding", "Database seeding completed")
+                    seedHistoryQuestions(db.questionDao(), db.answerDao(), historyCategoryId)
+                    seedFlagQuestions(db.questionDao(), db.answerDao(), countriesCategoryId)
+                    seedGeneralQuestions(db.questionDao(), db.answerDao(), randomCategoryId)
+                    Log.d("DatabaseSeeding", "Database seeding completed")
+                } else {
+                    Log.d("DatabaseSeeding", "Database already contains data, skipping seed")
+                }
             } catch (e: Exception) {
                 Log.e("DatabaseSeeding", "Error seeding database", e)
-            }*/
+            }
         }
     }
-
+    private suspend fun isDatabaseEmpty(db: AppDatabase): Boolean {
+        return db.categoryDao().getAllCategories().isEmpty()
+    }
 }
 
 fun seedCategories(categoryDao: CategoryDao) {

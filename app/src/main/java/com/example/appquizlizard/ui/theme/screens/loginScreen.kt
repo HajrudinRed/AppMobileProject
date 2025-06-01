@@ -28,11 +28,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import com.example.appquizlizard.backend.viewmodel.AuthViewModel
+import com.example.appquizlizard.backend.viewmodel.LoginState
+import kotlinx.coroutines.flow.MutableStateFlow
 
 @Composable
 fun LoginScreen(
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel = viewModel(),
+    navigateToMainScreen: (Int) -> Unit,
+    navigateToSignUp: () -> Unit
 ) {
     val backgroundColor = Color(android.graphics.Color.parseColor("#FFFFFFFF"))
 
@@ -42,12 +47,25 @@ fun LoginScreen(
 
     val loginState by authViewModel.loginState.collectAsState()
 
+    // Add this LaunchedEffect
+    LaunchedEffect(loginState.isSuccess) {
+        if (loginState.isSuccess) {
+            loginState.userId?.let { userId ->
+                navigateToMainScreen(userId)
+            }
+        }
+    }
+
     val shape = RoundedCornerShape(
         topStart = CornerSize(0.dp),
         topEnd = CornerSize(0.dp),
         bottomStart = CornerSize(50.dp),
         bottomEnd = CornerSize(50.dp)
     )
+
+
+
+
 
     Column(
         modifier = Modifier
@@ -143,8 +161,21 @@ fun LoginScreen(
                 modifier = Modifier.padding(8.dp)
             )
         }
+        Spacer(modifier = Modifier.height(5.dp))
 
-        Spacer(modifier = Modifier.height(8.dp))
+// Don't have an account link
+        TextButton(
+            onClick = { navigateToSignUp() },
+            modifier = Modifier.padding(vertical = 2.dp)
+        ) {
+            Text(
+                text = "Don't have an account?",
+                fontSize = 16.sp,
+                color = Color.DarkGray,
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
 
         Button(
             modifier = Modifier
@@ -162,6 +193,29 @@ fun LoginScreen(
                 color = Color.White,
                 fontSize = 18.sp
             )
+
         }
+
     }
+}
+@Preview(showSystemUi = true, name = "Login Screen Preview")
+@Composable
+fun LoginScreenPreview() {
+    // Create a mock AuthViewModel for preview
+    val mockAuthViewModel = object : AuthViewModel() {
+        override val loginState = MutableStateFlow(
+            LoginState(
+                isLoading = false,
+                errorMessage = null,
+                isSuccess = false,
+                userId = null
+            )
+        )
+    }
+
+    LoginScreen(
+        authViewModel = mockAuthViewModel,
+        navigateToMainScreen = {},
+        navigateToSignUp = {}
+    )
 }
