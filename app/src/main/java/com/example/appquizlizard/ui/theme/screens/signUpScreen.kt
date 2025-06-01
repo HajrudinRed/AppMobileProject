@@ -27,12 +27,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import com.example.appquizlizard.backend.viewmodel.AuthViewModel
+import com.example.appquizlizard.backend.viewmodel.LoginState
+import com.example.appquizlizard.backend.viewmodel.SignUpState
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 
 @Composable
 fun SignUpScreen(
     navigateToMainScreen: (userId: Int) -> Unit,
+    navigateToLogin: () -> Unit,
     authViewModel: AuthViewModel = viewModel()
 ) {
     val backgroundColor = Color(android.graphics.Color.parseColor("#FFFFFFFF"))
@@ -167,7 +172,7 @@ fun SignUpScreen(
 
         // Login if have account
         TextButton(
-            onClick = { /* TODO: Navigate to Login Screen */ },
+            onClick = { navigateToLogin() },
             modifier = Modifier.padding(vertical = 2.dp)
         ) {
             Text(
@@ -202,4 +207,25 @@ fun SignUpScreen(
             )
         }
     }
+}
+@Preview(showSystemUi = true, name = "Sign Up Screen Preview")
+@Composable
+fun SignUpScreenPreview() {
+    // Create a mock AuthViewModel for preview
+    val mockAuthViewModel = object : AuthViewModel() {
+        override val signUpState = MutableStateFlow(
+            SignUpState(
+                isLoading = false,
+                errorMessage = null,
+                isSuccess = false,
+                userId = null
+            )
+        )
+    }
+
+    SignUpScreen(
+        navigateToMainScreen = { /* Preview navigation */ },
+        authViewModel = mockAuthViewModel,
+        navigateToLogin = {}
+    )
 }

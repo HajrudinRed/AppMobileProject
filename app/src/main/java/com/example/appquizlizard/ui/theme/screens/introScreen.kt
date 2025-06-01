@@ -31,29 +31,20 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.TextUnit
 
 
-
-
-@Preview(showSystemUi = true)
 @Composable
-fun IntroScreenPreview(){
-    IntroScreen()
-}
-
-
-@Composable
-fun IntroScreen (){
+fun IntroScreen(
+    navigateToLogin: () -> Unit,
+    navigateToSignUp: () -> Unit
+) {
     val backgroundColor = Color(android.graphics.Color.parseColor("#FFFFFFFF"))
 
-
     val shape = RoundedCornerShape(
-        topStart = CornerSize(0.dp), // Top-left corner
-        topEnd = CornerSize(0.dp),   // Top-right corner
-        bottomStart = CornerSize(50.dp), // Bottom-left corner
-        bottomEnd = CornerSize(50.dp)    // Bottom-right corner
+        topStart = CornerSize(0.dp),
+        topEnd = CornerSize(0.dp),
+        bottomStart = CornerSize(50.dp),
+        bottomEnd = CornerSize(50.dp)
     )
 
-
-    //Column
     Column(
         modifier = Modifier
             .padding(0.dp)
@@ -62,21 +53,19 @@ fun IntroScreen (){
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-
-        //Yellow top box
+        // Yellow top box
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(shape) // Apply the shape here
-                .background(Color(0xFF800020)) // Yellow color
+                .clip(shape)
+                .background(Color(0xFF800020))
                 .padding(horizontal = 16.dp, vertical = 8.dp)
-        ){
-            Text(// ---------------> HOW DO I CHANGE THIS FONT TO Rounded Mplus 1c Bold
+        ) {
+            Text(
                 text = "QuizLizard",
                 fontSize = 35.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF800020),
+                color = Color.White, // Changed from burgundy to white to be visible
                 textAlign = TextAlign.Center,
                 fontFamily = FontFamily.Default,
                 modifier = Modifier
@@ -91,19 +80,18 @@ fun IntroScreen (){
         Image(
             painter = painterResource(id = R.drawable.quizlizardlogo),
             contentDescription = "Logo Image",
-            modifier = Modifier
-                .size(225.dp)
+            modifier = Modifier.size(225.dp)
         )
 
         Spacer(modifier = Modifier.size(width = 0.dp, height = 140.dp))
 
-        //GameButton
+        // Login Button
         Button(
             modifier = Modifier
                 .height(50.dp)
                 .width(150.dp),
             shape = RoundedCornerShape(50.dp),
-            onClick = {/*TO DO*/},
+            onClick = { navigateToLogin() },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF800020))
         ) {
             Text(
@@ -115,13 +103,13 @@ fun IntroScreen (){
 
         Spacer(modifier = Modifier.size(width = 0.dp, height = 10.dp))
 
-        //FlagsButton
+        // Signup Button
         Button(
             modifier = Modifier
                 .height(50.dp)
                 .width(150.dp),
             shape = RoundedCornerShape(50.dp),
-            onClick = {/*TO DO*/},
+            onClick = { navigateToSignUp() },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF800020))
         ) {
             Text(
@@ -131,4 +119,13 @@ fun IntroScreen (){
             )
         }
     }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+fun IntroScreenPreview() {
+    IntroScreen(
+        navigateToLogin = {},
+        navigateToSignUp = {}
+    )
 }
