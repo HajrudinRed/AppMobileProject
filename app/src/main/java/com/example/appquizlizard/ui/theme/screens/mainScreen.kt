@@ -108,4 +108,3 @@ fun MainScreen(navigateToCategory: (String) -> Unit) {
 fun MainScreenPreview() {
     MainScreen(navigateToCategory = {})
 }
-

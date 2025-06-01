@@ -1,4 +1,5 @@
 package com.example.appquizlizard.ui.theme.screens
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -7,11 +8,7 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.appquizlizard.R
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
@@ -30,17 +27,32 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-
+import com.example.appquizlizard.backend.viewmodel.AuthViewModel
+import kotlinx.coroutines.delay
 
 @Composable
 fun SignUpScreen(
-    navigateToMainScreen: (userId: Int) -> Unit
+    navigateToMainScreen: (userId: Int) -> Unit,
+    authViewModel: AuthViewModel = viewModel()
 ) {
     val backgroundColor = Color(android.graphics.Color.parseColor("#FFFFFFFF"))
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisibility by remember { mutableStateOf(false) }
     var username by remember { mutableStateOf("") }
+
+    val signUpState by authViewModel.signUpState.collectAsState()
+
+    // Automatically navigate on success
+    LaunchedEffect(signUpState.isSuccess) {
+        if (signUpState.isSuccess) {
+            signUpState.userId?.let { userId ->
+                navigateToMainScreen(userId)
+                // Optionally clear state after navigation
+                authViewModel.clearSignUpState()
+            }
+        }
+    }
 
     val shape = RoundedCornerShape(
         topStart = CornerSize(0.dp),
@@ -135,9 +147,27 @@ fun SignUpScreen(
                 .fillMaxWidth(0.8f)
                 .padding(vertical = 8.dp)
         )
-        //Login if have account
+
+        // Error message
+        signUpState.errorMessage?.let { error ->
+            Text(
+                text = error,
+                color = Color.Red,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
+
+        // Loading indicator
+        if (signUpState.isLoading) {
+            CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Login if have account
         TextButton(
-            onClick = { /* Navigate to Sign Up Screen */ },
+            onClick = { /* TODO: Navigate to Login Screen */ },
             modifier = Modifier.padding(vertical = 2.dp)
         ) {
             Text(
@@ -146,15 +176,24 @@ fun SignUpScreen(
                 color = Color.DarkGray,
             )
         }
+
         Spacer(modifier = Modifier.size(width = 0.dp, height = 1.dp))
+
         // Sign Up Button
         Button(
             modifier = Modifier
                 .height(50.dp)
                 .width(150.dp),
             shape = RoundedCornerShape(50.dp),
-            onClick = { navigateToMainScreen(0) },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF800020))
+            onClick = {
+                authViewModel.signUp(
+                    username.trim(),
+                    email.trim(),
+                    password.trim()
+                )
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF800020)),
+            enabled = !signUpState.isLoading
         ) {
             Text(
                 text = "Sign Up",
@@ -163,10 +202,4 @@ fun SignUpScreen(
             )
         }
     }
-}
-
-@Preview(showSystemUi = true)
-@Composable
-fun SignUpScreenPreview() {
-    SignUpScreen(navigateToMainScreen = {})
 }
