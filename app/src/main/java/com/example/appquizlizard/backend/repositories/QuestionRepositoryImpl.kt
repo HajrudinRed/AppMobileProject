@@ -28,4 +28,7 @@ class QuestionRepositoryImpl @Inject constructor(private val questionDao: Questi
     override suspend fun getQuestionCountByCategory(categoryId: Int): Int {
         return questionDao.getQuestionCountByCategory(categoryId)
     }
+    override suspend fun getQuestionsByCategory(categoryId: Int): List<Question> {
+        return questionDao.getQuestionsByCategory(categoryId)
+    }
 }

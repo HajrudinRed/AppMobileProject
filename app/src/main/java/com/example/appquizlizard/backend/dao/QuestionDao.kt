@@ -24,5 +24,8 @@ interface QuestionDao: BaseDao<Question> {
     @Query("Select questionPictureResId FROM questions WHERE questionId = :questionId")
     suspend fun getQuestionPictureById(questionId: Int): Int
 
+    @Query("SELECT * FROM questions WHERE categoryId = :categoryId")
+    suspend fun getQuestionsByCategory(categoryId: Int): List<Question>
+
 
 }

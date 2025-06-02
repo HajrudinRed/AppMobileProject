@@ -2,71 +2,26 @@ package com.example.appquizlizard.ui.theme.screens
 
 import android.os.Handler
 import android.os.Looper
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.appquizlizard.R
 import com.example.appquizlizard.backend.model.Answer
 import com.example.appquizlizard.backend.model.Question
 import com.example.appquizlizard.backend.viewmodel.QuizViewModel
-
-@Preview(showSystemUi = true)
-@Composable
-fun QuizScreenPreview() {
-    // Create a mock/preview version that doesn't use the real viewModel
-    QuizScreenContent(
-        categoryId = 1,
-        currentQuestion = Question(
-            questionId = 1,
-            categoryId = 1,
-            questionText = "Sample question?",
-            questionPictureResId = R.drawable.quizlizardlogo
-        ),
-        currentAnswers = listOf(
-            Answer(1, 1, "Answer 1", true),
-            Answer(2, 1, "Answer 2", false),
-            Answer(3, 1, "Answer 3", false),
-            Answer(4, 1, "Answer 4", false)
-        ),
-        selectedAnswerId = null,
-        isAnswerCorrect = null,
-        loading = false,
-        error = null,
-        correctAnswersCount = 0,
-        onAnswerSelected = {},
-        navigateToFinish = { _, _ -> }
-    )
-}
 
 @Composable
 fun QuizScreen(
@@ -82,6 +37,8 @@ fun QuizScreen(
     val loading by viewModel.loading.collectAsState()
     val error by viewModel.error.collectAsState()
     val correctAnswersCount by viewModel.correctAnswersCount.collectAsState()
+    val currentQuestionIndex by viewModel.currentQuestionIndex.collectAsState()
+    val totalQuestions by viewModel.totalQuestions.collectAsState()
 
     // Call setCategory when the screen is first created
     LaunchedEffect(key1 = categoryId) {
@@ -98,10 +55,13 @@ fun QuizScreen(
         loading = loading,
         error = error,
         correctAnswersCount = correctAnswersCount,
+        currentQuestionIndex = currentQuestionIndex,
+        totalQuestions = totalQuestions,
         onAnswerSelected = { answerId ->
             viewModel.selectAnswer(answerId)
         },
-        navigateToFinish = navigateToFinish
+        navigateToFinish = navigateToFinish,
+        viewModel = viewModel
     )
 }
 
@@ -115,15 +75,15 @@ fun QuizScreenContent(
     loading: Boolean,
     error: String?,
     correctAnswersCount: Int,
+    currentQuestionIndex: Int,
+    totalQuestions: Int,
     onAnswerSelected: (Int) -> Unit,
-    navigateToFinish: (Int, Int) -> Unit
+    navigateToFinish: (Int, Int) -> Unit,
+    viewModel: QuizViewModel
 ) {
     val backgroundColor = Color(android.graphics.Color.parseColor("#FFFFFF"))
-    val headerColor = Color(0xFF800020) // Using direct color value instead of R.color.Red2
-    val buttonColor = Color(0xFF800020) // Using direct color value instead of R.color.Green2
-
-    // Track if we've already navigated to avoid duplicate navigations
-    var hasNavigated by remember { mutableStateOf(false) }
+    val headerColor = Color(0xFF800020)
+    val buttonColor = Color(0xFF800020)
 
     Column(
         modifier = Modifier
@@ -181,11 +141,18 @@ fun QuizScreenContent(
                 ) {
                     // Question Number/Score
                     Text(
+                        text = "Question ${currentQuestionIndex + 1}/$totalQuestions",
+                        fontSize = 18.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+
+                    Text(
                         text = "Score: $correctAnswersCount",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = headerColor,
-                        modifier = Modifier.padding(vertical = 16.dp)
+                        modifier = Modifier.padding(bottom = 16.dp)
                     )
 
                     // Question Image
@@ -227,13 +194,16 @@ fun QuizScreenContent(
                                     if (selectedAnswerId == null) {
                                         onAnswerSelected(answer.answerId)
 
-                                        // Wait for a moment before showing next question or finishing
+                                        // Wait for a moment before moving to next question
                                         Handler(Looper.getMainLooper()).postDelayed({
-                                            if (!hasNavigated) {
-                                                hasNavigated = true
+                                            // Check if this was the last question
+                                            if (currentQuestionIndex + 1 < totalQuestions) {
+                                                viewModel.moveToNextQuestion()
+                                            } else {
+                                                // Navigate to finish if all questions answered
                                                 navigateToFinish(categoryId, correctAnswersCount)
                                             }
-                                        }, 1000)
+                                        }, 1000) // Show answer state for 1 second
                                     }
                                 },
                                 modifier = Modifier

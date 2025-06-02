@@ -8,12 +8,13 @@ import com.example.appquizlizard.backend.model.UserProgress
 import com.example.appquizlizard.backend.repositories.AnswerRepository
 import com.example.appquizlizard.backend.repositories.QuestionRepository
 import com.example.appquizlizard.backend.repositories.UserProgressRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.text.insert
 
 @HiltViewModel
 class QuizViewModel @Inject constructor(
@@ -22,124 +23,192 @@ class QuizViewModel @Inject constructor(
     private val userProgressRepository: UserProgressRepository
 ) : ViewModel() {
 
-    // Current category id (you can set this from UI)
+    // Current category
     private val _categoryId = MutableStateFlow<Int?>(null)
 
-    private val _answers = MutableStateFlow<List<Answer>>(emptyList())
-    val answers: StateFlow<List<Answer>> = _answers
+    // List of all questions for the selected category
+    private val _questions = MutableStateFlow<List<Question>>(emptyList())
+    val questions = _questions.asStateFlow()
 
-    // Expose current question as a Flow, emits new question when category changes
-    val currentQuestion: StateFlow<Question?> = _categoryId
-        .filterNotNull()
-        .flatMapLatest { categoryId ->
-            questionRepository.getQuestionByCategory(categoryId)
-                .catch { e ->
-                    _error.value = e.message
-                    emit(null)
-                }
-        }
-        .stateIn(viewModelScope, SharingStarted.Lazily, null)
+    // Current question index
+    private val _currentQuestionIndex = MutableStateFlow(0)
+    val currentQuestionIndex = _currentQuestionIndex.asStateFlow()
 
-    private val _correctAnswer = MutableStateFlow<Answer?>(null)
-    val correctAnswer: StateFlow<Answer?> = _correctAnswer
+    // Total number of questions
+    private val _totalQuestions = MutableStateFlow(0)
+    val totalQuestions = _totalQuestions.asStateFlow()
 
-    // Expose answers for the current question as a Flow
-    val currentAnswers: StateFlow<List<Answer>> = currentQuestion
-        .filterNotNull()
-        .flatMapLatest { question ->
-            flow {
-                val answers = answerRepository.getAnswersForQuestion(question.questionId)
-                emit(answers)
-            }.catch { emit(emptyList()) }
-        }
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    // Current question
+    private val _currentQuestion = MutableStateFlow<Question?>(null)
+    val currentQuestion = _currentQuestion.asStateFlow()
 
-    private val _userProgress = MutableStateFlow<List<UserProgress>>(emptyList())
-    val userProgress: StateFlow<List<UserProgress>> = _userProgress
+    // Current answers for the question
+    private val _currentAnswers = MutableStateFlow<List<Answer>>(emptyList())
+    val currentAnswers = _currentAnswers.asStateFlow()
 
-    // Track user's selected answer ID for current question
+    // Selected answer ID
     private val _selectedAnswerId = MutableStateFlow<Int?>(null)
-    val selectedAnswerId: StateFlow<Int?> = _selectedAnswerId.asStateFlow()
+    val selectedAnswerId = _selectedAnswerId.asStateFlow()
 
-    private val _correctAnswersCount = MutableStateFlow(0)
-    val correctAnswersCount: StateFlow<Int> = _correctAnswersCount
-
-    // StateFlow to show if selected answer is correct or not (null if unanswered)
+    // Is the answer correct
     private val _isAnswerCorrect = MutableStateFlow<Boolean?>(null)
-    val isAnswerCorrect: StateFlow<Boolean?> = _isAnswerCorrect.asStateFlow()
+    val isAnswerCorrect = _isAnswerCorrect.asStateFlow()
 
-    // Loading and error state
+    // Loading state
     private val _loading = MutableStateFlow(false)
     val loading = _loading.asStateFlow()
 
+    // Error state
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
 
-    // Public function to set categoryId (e.g. when user picks a category)
+    // Track the user's score
+    private val _correctAnswersCount = MutableStateFlow(0)
+    val correctAnswersCount = _correctAnswersCount.asStateFlow()
+
+    // User progress
+    private val _userProgress = MutableStateFlow<UserProgress?>(null)
+    val userProgress = _userProgress.asStateFlow()
+
     fun setCategory(categoryId: Int) {
-        _categoryId.value = categoryId
-        resetAnswerState()
-    }
-
-    fun loadUserProgress(userId: Int) {
         viewModelScope.launch {
-            _userProgress.value = userProgressRepository.getUserProgress(userId)
-            _correctAnswersCount.value = userProgressRepository.getCorrectAnswersCount(userId)
-        }
-    }
-
-    // User selects an answer by answerId
-    fun selectAnswer(answerId: Int) {
-        _selectedAnswerId.value = answerId
-
-        viewModelScope.launch {
-            val question = currentQuestion.value
-            if (question == null) {
-                _error.value = "No question loaded."
-                return@launch
-            }
-
             _loading.value = true
+            _error.value = null
+            _categoryId.value = categoryId
 
             try {
-                val correctAnswer = answerRepository.getCorrectAnswer(question.questionId)
-                _isAnswerCorrect.value = (correctAnswer?.answerId == answerId)
+                // Load all questions for this category
+                val questions = questionRepository.getQuestionsByCategory(categoryId)
+                _questions.value = questions
+                _totalQuestions.value = questions.size
 
-                // Save user progress with correct parameters and timestamp
-                userProgressRepository.insert(
-                    UserProgress(
-                        userId = 1,  // Replace with actual logged-in userId
-                        questionId = question.questionId,
-                        answerId = answerId,
-                        isCorrect = _isAnswerCorrect.value == true,
-                        timestamp = System.currentTimeMillis()
-                    )
-                )
+                if (questions.isNotEmpty()) {
+                    _currentQuestion.value = questions.first()
+                    loadAnswersForCurrentQuestion()
+                } else {
+                    _error.value = "No questions found for this category"
+                }
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = "Error loading questions: ${e.message}"
             } finally {
                 _loading.value = false
             }
         }
     }
 
-    fun saveUserProgress(userId: Int, questionId: Int, isCorrect: Boolean) {
+    // Load answers for the current question
+    private fun loadAnswersForCurrentQuestion() {
         viewModelScope.launch {
-            val progress = UserProgress(
-                userId = userId,
-                questionId = questionId,
-                answerId = _selectedAnswerId.value ?: 0,
-                isCorrect = isCorrect,
-                timestamp = System.currentTimeMillis()
-            )
-            userProgressRepository.insert(progress)
-            loadUserProgress(userId)
+            _currentQuestion.value?.let { question ->
+                _currentAnswers.value = answerRepository.getAnswersForQuestion(question.questionId)
+            }
         }
     }
 
-    fun resetAnswerState() {
+    fun selectAnswer(answerId: Int) {
+        viewModelScope.launch {
+            if (_selectedAnswerId.value == null) {
+                _selectedAnswerId.value = answerId
+
+                // Check if the answer is correct
+                val correctAnswer = answerRepository.getCorrectAnswer(_currentQuestion.value?.questionId ?: 0)
+                val isCorrect = correctAnswer?.answerId == answerId
+                _isAnswerCorrect.value = isCorrect
+
+                // Update score if correct
+                if (isCorrect) {
+                    _correctAnswersCount.value = _correctAnswersCount.value + 1
+                }
+
+                // Update user progress
+                updateUserProgress()
+            }
+        }
+    }
+
+    // Move to the next question
+    fun moveToNextQuestion() {
+        val nextIndex = _currentQuestionIndex.value + 1
+        if (nextIndex < _questions.value.size) {
+            _currentQuestionIndex.value = nextIndex
+            _currentQuestion.value = _questions.value[nextIndex]
+            resetAnswerState()
+            loadAnswersForCurrentQuestion()
+        }
+    }
+
+    // Reset answer state for next question
+    private fun resetAnswerState() {
         _selectedAnswerId.value = null
         _isAnswerCorrect.value = null
-        _error.value = null
+    }
+
+    // Load user progress
+    fun loadUserProgress(userId: Int) {
+        viewModelScope.launch {
+            try {
+                val categoryId = _categoryId.value ?: return@launch
+                val progress = userProgressRepository.getUserProgressByCategoryAndUser(categoryId, userId)
+                _userProgress.value = progress
+            } catch (e: Exception) {
+                _error.value = e.message
+            }
+        }
+    }
+
+    // Update user progress
+    private fun updateUserProgress() {
+        viewModelScope.launch {
+            try {
+                val categoryId = _categoryId.value ?: return@launch
+                val userId = 1 // Replace with actual user ID in production
+                val questionId = _currentQuestion.value?.questionId
+                val answerId = _selectedAnswerId.value
+                val isCorrect = _isAnswerCorrect.value ?: false
+
+                // Create or update user progress
+                val existingProgress = userProgressRepository.getUserProgressByCategoryAndUser(categoryId, userId)
+
+                if (existingProgress != null) {
+                    // Create updated progress with new score
+                    val updatedProgress = existingProgress.copy(
+                        score = _correctAnswersCount.value,
+                        questionId = questionId ?: 0, // Use 0 as default if questionId is null
+                        answerId = answerId ?: 0, // Use 0 as default if answerId is null
+                        isCorrect = isCorrect,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    userProgressRepository.update(updatedProgress)
+                } else {
+                    // Create new progress
+                    val newProgress = UserProgress(
+                        userId = userId,
+                        categoryId = categoryId,
+                        score = _correctAnswersCount.value,
+                        questionId = questionId ?: 0, // Use 0 as default if questionId is null
+                        answerId = answerId ?: 0, // Use 0 as default if answerId is null
+                        isCorrect = isCorrect,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    userProgressRepository.insert(newProgress)
+                }
+
+                _userProgress.value = existingProgress
+            } catch (e: Exception) {
+                _error.value = "Failed to update progress: ${e.message}"
+            }
+        }
+    }
+
+    fun getQuestionsByCategory(categoryId: Int) {
+        viewModelScope.launch {
+            try {
+                val questions = questionRepository.getQuestionsByCategory(categoryId)
+                _questions.value = questions
+                _totalQuestions.value = questions.size
+            } catch (e: Exception) {
+                _error.value = e.message
+            }
+        }
     }
 }

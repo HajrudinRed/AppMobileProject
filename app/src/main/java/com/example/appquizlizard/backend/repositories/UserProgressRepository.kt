@@ -7,6 +7,7 @@ interface UserProgressRepository: BaseRepository<UserProgress> {
 
     suspend fun getUserProgress(userId: Int): List<UserProgress>
     suspend fun getCorrectAnswersCount(userId: Int): Int
+    suspend fun getUserProgressByCategoryAndUser(categoryId: Int, userId: Int): UserProgress?
 
 
 

@@ -36,7 +36,7 @@ object DatabaseModule {
             context.applicationContext,
             AppDatabase::class.java,
             "app_quiz_lizard_database"
-        ).fallbackToDestructiveMigration(true).build()
+        ).fallbackToDestructiveMigration().build()
     }
     @Provides
     fun provideUserDao(appDatabase: AppDatabase): UserDao = appDatabase.userDao()

@@ -13,4 +13,7 @@ interface UserProgressDao: BaseDao<UserProgress> {
     @Query("SELECT COUNT(*) FROM progress WHERE userId = :userId AND isCorrect = 1")
     suspend fun getCorrectAnswersCount(userId: Int): Int
 
+    // In UserProgressDao.kt
+    @Query("SELECT * FROM progress WHERE categoryId = :categoryId AND userId = :userId LIMIT 1")
+    suspend fun getUserProgressByCategoryAndUser(categoryId: Int, userId: Int): UserProgress?
 }

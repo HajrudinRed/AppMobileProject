@@ -9,4 +9,5 @@ interface QuestionRepository : BaseRepository<Question>{
     suspend fun getQuestionByCategory(categoryId: Int): Flow<Question?>
     suspend fun getQuestionById(questionId: Int): Question?
     suspend fun getQuestionCountByCategory(categoryId: Int): Int
+    suspend fun getQuestionsByCategory(categoryId: Int): List<Question>
 }

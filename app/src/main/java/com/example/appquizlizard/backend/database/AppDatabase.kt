@@ -15,7 +15,7 @@ import com.example.appquizlizard.backend.model.UserProgress
 
 @Database(
     entities = [User::class, Category::class, Question::class, UserProgress::class, Answer::class],
-    version = 1,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase: RoomDatabase() {

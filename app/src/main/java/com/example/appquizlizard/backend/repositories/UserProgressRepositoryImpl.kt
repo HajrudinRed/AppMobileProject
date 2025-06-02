@@ -21,5 +21,8 @@ class UserProgressRepositoryImpl @Inject constructor( private val userProgressDa
     override suspend fun getCorrectAnswersCount(userId: Int): Int {
         return userProgressDao.getCorrectAnswersCount(userId)
     }
-
+    // In UserProgressDao.kt
+    override suspend fun getUserProgressByCategoryAndUser(categoryId: Int, userId: Int): UserProgress? {
+        return userProgressDao.getUserProgressByCategoryAndUser(categoryId, userId)
+    }
 }

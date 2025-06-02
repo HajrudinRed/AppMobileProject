@@ -19,7 +19,13 @@ import androidx.room.PrimaryKey
         parentColumns = ["questionId"],
         childColumns = ["questionId"],
         onDelete = ForeignKey.CASCADE
-    )],
+    ), ForeignKey(
+        entity = Category::class,
+        parentColumns = ["categoryId"],
+        childColumns = ["categoryId"],
+        onDelete = ForeignKey.CASCADE
+    )
+                  ],
     indices = [Index(value = ["userId"]),Index(value = ["questionId"])],
 
 )
@@ -28,6 +34,8 @@ data class UserProgress(
     @PrimaryKey(autoGenerate = true)
     val progressId: Int = 0,
     val userId: Int,
+    val categoryId: Int,
+    val score: Int = 0,
     val questionId: Int,
     val answerId: Int,
     val isCorrect: Boolean,
